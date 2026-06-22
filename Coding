@@ -1,0 +1,175 @@
+#include <WiFi.h>
+#include <WiFiClientSecure.h> // Built-in TLS encryption support
+#include <PubSubClient.h>     // Core MQTT protocol library
+
+// --- 1. Wi-Fi Configuration ---
+const char* ssid     = "takdewifi_2.4Ghz"; 
+const char* password = "12345678";         
+
+// --- 2. EMQX Cloud Configuration ---
+const char* mqtt_broker   = "fe3e20ff.ala.asia-southeast1.emqxsl.com"; 
+const int mqtt_port       = 8883; // Secure MQTTS Port             
+const char* mqtt_username = "sensor_MQ2";              
+const char* mqtt_password = "12345678";              
+const char* mqtt_topic    = "sensor/MQ2"; 
+
+WiFiClientSecure espClientSecure; 
+PubSubClient mqttClient(espClientSecure);
+
+// --- 3. Hardware Pin Definition ---
+#define MQ2_PIN 32 // Safe ADC1 Pin (D32) to prevent Wi-Fi channel drops
+
+// --- 4. Non-Blocking Timer & Network State Variables ---
+unsigned long lastMsgTime = 0;
+unsigned long lastWiFiCheckTime = 0;
+const unsigned long wifiCheckInterval = 10000; // Check Wi-Fi health every 10 seconds
+
+enum WiFiState { 
+  WIFI_INITIAL_CONNECT, 
+  WIFI_CONNECTED_VALID, 
+  WIFI_LOST_RECONNECTING 
+};
+WiFiState currentNetworkState = WIFI_INITIAL_CONNECT;
+
+// --- 5. Secure MQTT Connection Function ---
+void connectToMQTT() {
+  while (!mqttClient.connected()) {
+    // Generate a unique Client ID for each bootup cycle
+    String clientId = "ESP32-MQ2-Client-" + String(random(0, 10000));
+    Serial.print("Attempting secure TLS connection to EMQX Cloud...");
+    
+    // Connect to broker with credentials
+    if (mqttClient.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
+      Serial.println(" Connected securely!");
+    } else {
+      Serial.print(" Failed, MQTT State Code rc=");
+      Serial.print(mqttClient.state());
+      Serial.println(" Retrying in 2 seconds...");
+      delay(2000); // Guard delay before cycling connection attempt
+    }
+  }
+}
+
+// --- 6. Non-Blocking Wi-Fi State Machine ---
+void handleWiFiStateMachine() {
+  unsigned long currentMillis = millis();
+  
+  if (currentMillis - lastWiFiCheckTime >= wifiCheckInterval || currentNetworkState == WIFI_INITIAL_CONNECT) {
+    lastWiFiCheckTime = currentMillis;
+    
+    switch (currentNetworkState) {
+      case WIFI_INITIAL_CONNECT:
+        Serial.println("\n[WIFI STATE: INITIAL] Configuring network parameters...");
+        WiFi.disconnect();   
+        WiFi.mode(WIFI_STA);  
+        WiFi.begin(ssid, password);
+        
+        Serial.print("Connecting to local network");
+        while (WiFi.status() != WL_CONNECTED) { 
+          delay(500); 
+          Serial.print("."); 
+        }
+        Serial.println("\n[WIFI SUCCESS] Network Link Established!");
+        Serial.print("ESP32 IP: ");
+        Serial.println(WiFi.localIP());
+        currentNetworkState = WIFI_CONNECTED_VALID;
+        break;
+        
+      case WIFI_CONNECTED_VALID:
+        if (WiFi.status() != WL_CONNECTED) {
+          Serial.println("\n[WIFI CRITICAL] Connection Dropped! Entering recovery state...");
+          currentNetworkState = WIFI_LOST_RECONNECTING;
+        } else {
+          Serial.println("[SYSTEM] Network link healthy.");
+        }
+        break;
+        
+      case WIFI_LOST_RECONNECTING:
+        Serial.println("[WIFI STATE: RECOVERY] Re-running background connection drivers...");
+        WiFi.begin(ssid, password);
+        if (WiFi.status() == WL_CONNECTED) { 
+          Serial.println("[WIFI RECOVERED] Connection restored successfully!");
+          currentNetworkState = WIFI_CONNECTED_VALID; 
+        }
+        break;
+    }
+  }
+}
+
+// --- 7. Setup Block ---
+void setup() {
+  Serial.begin(115200);
+  pinMode(MQ2_PIN, INPUT);
+  
+  // Set ESP32 ADC attenuation to sample full range (0V to 3.3V)
+  analogSetAttenuation(ADC_11db); 
+  
+  // Initialize Wi-Fi connection
+  handleWiFiStateMachine();
+  
+  // Tell the secure client layer to bypass root certificate check (avoids heavy cert hardcoding)
+  espClientSecure.setInsecure(); 
+  
+  // Point your MQTT configuration to the secure server details
+  mqttClient.setServer(mqtt_broker, mqtt_port);
+  
+  Serial.println("System setup finished. Sensor heater warming up...");
+}
+
+// --- 8. Main Execution Loop ---
+void loop() {
+  // Always manage network integrity at the top of the loop
+  handleWiFiStateMachine();
+
+  if (currentNetworkState == WIFI_CONNECTED_VALID) {
+    // Keep connection active with the cloud instance
+    if (!mqttClient.connected()) {
+      connectToMQTT();
+    }
+    mqttClient.loop(); // Keeps internal MQTT keep-alive handshakes active
+
+    // Publish data packet every 2000ms safely without blocking background processes
+    unsigned long now = millis();
+    if (now - lastMsgTime > 2000) {
+      lastMsgTime = now;
+
+      // Read raw sensor data and convert to operational voltage
+      int raw_value = analogRead(MQ2_PIN);   
+      float voltage = (raw_value / 4095.0) * 3.3;
+
+      // Protection boundary against mathematical zero errors during power fluctuations
+      if (voltage < 0.1) voltage = 0.1; 
+
+      // Calculate internal sensor resistance (Rs) based on a standard 10k Load Resistor
+      float rs = ((3.3 - voltage) / voltage) * 10.0; 
+      
+      // Map Rs against baseline air resistance parameter (R0 assumed at standard 10.0k Ohms)
+      float rs_r0_ratio = rs / 10.0; 
+
+      // Derive PPM gas curves derived from the technical MQ-2 datasheet
+      float lpg_ppm = 574.25 * pow(rs_r0_ratio, -2.22);
+      float smoke_ppm = 159.26 * pow(rs_r0_ratio, -2.45);
+
+      // Clean up air noise anomalies (clipping values if the room environment is clean)
+      if (raw_value < 450) { 
+        lpg_ppm = 0.0;
+        smoke_ppm = 0.0;
+      }
+
+      // Construct an clean, compliant JSON string payload
+      String payload = "{";
+      payload += "\"sensor_id\":\"Mq2_sensor\",";
+      payload += "\"raw\":" + String(raw_value) + ",";
+      payload += "\"voltage\":" + String(voltage, 2) + ",";
+      payload += "\"lpg_ppm\":" + String(lpg_ppm, 1) + ",";
+      payload += "\"smoke_ppm\":" + String(smoke_ppm, 1);
+      payload += "}";
+      
+      // Ship it over the secure port directly up to your EMQX broker deployment
+      mqttClient.publish(mqtt_topic, payload.c_str());
+      
+      Serial.print("Published to EMQX Cloud: ");
+      Serial.println(payload);
+    }
+  }
+}
