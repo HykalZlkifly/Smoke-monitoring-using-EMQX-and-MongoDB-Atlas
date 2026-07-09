@@ -7,8 +7,8 @@ const char* ssid     = "takdewifi_2.4Ghz";
 const char* password = "12345678";         
 
 // --- 2. EMQX Cloud Configuration ---
-const char* mqtt_broker   = "fe3e20ff.ala.asia-southeast1.emqxsl.com"; 
-const int mqtt_port       = 8883; // Secure MQTTS Port             
+const char* mqtt_broker   = "172.197.176.108"; 
+const int mqtt_port       = 1883;             
 const char* mqtt_username = "sensor_MQ2";              
 const char* mqtt_password = "12345678";              
 const char* mqtt_topic    = "sensor/MQ2"; 
