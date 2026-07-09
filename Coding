@@ -11,7 +11,7 @@ const char* mqtt_broker   = "172.197.176.108";
 const int mqtt_port       = 1883;             
 const char* mqtt_username = "sensor_MQ2";              
 const char* mqtt_password = "12345678";              
-const char* mqtt_topic    = "sensor/MQ2"; 
+const char* mqtt_topic    = "sensor/MQ2/gas"; 
 
 WiFiClientSecure espClientSecure; 
 PubSubClient mqttClient(espClientSecure);
