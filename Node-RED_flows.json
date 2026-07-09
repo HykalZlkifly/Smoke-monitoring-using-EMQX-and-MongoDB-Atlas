@@ -1,0 +1,286 @@
+[
+    {
+        "id": "89c011ab62ae1c10",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "63b5d2644b9a2bd5",
+        "type": "mongodb4",
+        "z": "89c011ab62ae1c10",
+        "clientNode": "23938d3ad2c954d3",
+        "mode": "collection",
+        "collection": "Temperature&Humidity",
+        "operation": "insertOne",
+        "output": "toArray",
+        "maxTimeMS": "0",
+        "handleDocId": false,
+        "name": "Basic",
+        "x": 670,
+        "y": 160,
+        "wires": [
+            [
+                "950c351f167f40b0"
+            ]
+        ]
+    },
+    {
+        "id": "dfb2515b110b6dba",
+        "type": "mqtt in",
+        "z": "89c011ab62ae1c10",
+        "name": "Postman",
+        "topic": "data/Postman/temperature",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "1c136a5f13339565",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 300,
+        "y": 160,
+        "wires": [
+            [
+                "ca5cfa30c9377c90",
+                "1405bd9e255cec20"
+            ]
+        ]
+    },
+    {
+        "id": "5e834344cd352537",
+        "type": "mqtt in",
+        "z": "89c011ab62ae1c10",
+        "name": "MQ2",
+        "topic": "sensor/MQ2",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "1c136a5f13339565",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 290,
+        "y": 280,
+        "wires": [
+            [
+                "ca5cfa30c9377c90",
+                "d3891f79562a4647"
+            ]
+        ]
+    },
+    {
+        "id": "ca5cfa30c9377c90",
+        "type": "debug",
+        "z": "89c011ab62ae1c10",
+        "name": "input",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "d3891f79562a4647",
+        "type": "function",
+        "z": "89c011ab62ae1c10",
+        "name": "S&G_timestamp",
+        "func": "//1. Capture the raw MQTT telemetry\nvar raw_data = msg.payload;\n\n//2. Construct the Time-Series compliant object\nvar ts_document = {\n    \"timestamp\": new Date(),\n    \"sensor_id\": raw_data.sensor_id,\n    \"raw\": raw_data.raw,\n    \"voltage\": raw_data.voltage,\n    \"lpg_ppm\":raw_data.lpg_ppm,\n    \"smoke_ppm\":raw_data.smoke_ppm\n};\n\nmsg.payload = ts_document;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 280,
+        "wires": [
+            [
+                "4ded29f12e3252fd",
+                "2640d49a3131208f"
+            ]
+        ]
+    },
+    {
+        "id": "950c351f167f40b0",
+        "type": "debug",
+        "z": "89c011ab62ae1c10",
+        "name": "T&H",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 830,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "4ded29f12e3252fd",
+        "type": "mongodb4",
+        "z": "89c011ab62ae1c10",
+        "clientNode": "23938d3ad2c954d3",
+        "mode": "collection",
+        "collection": "Smoke&Gas",
+        "operation": "insertOne",
+        "output": "toArray",
+        "maxTimeMS": "0",
+        "handleDocId": false,
+        "name": "Basic",
+        "x": 670,
+        "y": 240,
+        "wires": [
+            [
+                "8e46c4ce1370ff85"
+            ]
+        ]
+    },
+    {
+        "id": "2640d49a3131208f",
+        "type": "mongodb4",
+        "z": "89c011ab62ae1c10",
+        "clientNode": "23938d3ad2c954d3",
+        "mode": "collection",
+        "collection": "Smoke&Gas_time",
+        "operation": "insertOne",
+        "output": "toArray",
+        "maxTimeMS": "0",
+        "handleDocId": false,
+        "name": "timestamp",
+        "x": 690,
+        "y": 320,
+        "wires": [
+            [
+                "580af0827a23ad0a"
+            ]
+        ]
+    },
+    {
+        "id": "8e46c4ce1370ff85",
+        "type": "debug",
+        "z": "89c011ab62ae1c10",
+        "name": "S&G",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 830,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "580af0827a23ad0a",
+        "type": "debug",
+        "z": "89c011ab62ae1c10",
+        "name": "S&G_T",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "1405bd9e255cec20",
+        "type": "function",
+        "z": "89c011ab62ae1c10",
+        "name": "T&H_timestamp",
+        "func": "//1. Capture the raw MQTT telemetry\nvar raw_data = msg.payload;\n\n//2. Construct the Time-Series compliant object\nvar ts_document = {\n    \"timestamp\": new Date(),\n    \"sensor_id\": raw_data.sensor_id,\n    \"temperature\": raw_data.temperature,\n    \"humidity\": raw_data.humidity\n};\n\nmsg.payload = ts_document;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 160,
+        "wires": [
+            [
+                "63b5d2644b9a2bd5"
+            ]
+        ]
+    },
+    {
+        "id": "23938d3ad2c954d3",
+        "type": "mongodb4-client",
+        "name": "MongoDB Atlas",
+        "protocol": "mongodb",
+        "hostname": "",
+        "port": "",
+        "dbName": "AssignmentDB",
+        "appName": "",
+        "authSource": "",
+        "authMechanism": "DEFAULT",
+        "tls": false,
+        "tlsCAFile": "",
+        "tlsCertificateKeyFile": "",
+        "tlsInsecure": false,
+        "connectTimeoutMS": "30000",
+        "socketTimeoutMS": "0",
+        "minPoolSize": "0",
+        "maxPoolSize": "100",
+        "maxIdleTimeMS": "0",
+        "uri": "mongodb+srv://Node-RED:Password123@assignment.rpi3pzf.mongodb.net/",
+        "advanced": "{}",
+        "uriTabActive": "tab-uri-advanced"
+    },
+    {
+        "id": "1c136a5f13339565",
+        "type": "mqtt-broker",
+        "name": "EMQX Broker",
+        "broker": "127.0.0.1",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "718ccee993b45bca",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-mongodb4": "3.4.0"
+        }
+    }
+]
