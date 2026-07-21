@@ -22,6 +22,8 @@ This project focuses on building a real-world IoT telemetry pipeline using an **
 │   └── schema.sql               # Database schemas and structural scripts
 └── README.md                    # Project documentation
 ```
-![System Flow](https://raw.githubusercontent.com/HykalZlkifly/Smoke-monitoring-using-EMQX-and-MongoDB-Atlas/main/image.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/HykalZlkifly/Smoke-monitoring-using-EMQX-and-MongoDB-Atlas/main/image.png" alt="System Flow">
+</p>
 
 
