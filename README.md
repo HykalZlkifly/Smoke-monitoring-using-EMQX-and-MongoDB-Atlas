@@ -2,7 +2,7 @@
 
 ## 📌 Project Overview
 This project focuses on building a real-world IoT telemetry pipeline using an **ESP32 microcontroller**, an **MQ-2 gas sensor**, and a managed **EMQX Cloud MQTT broker**. The system continuously samples ambient gas concentrations, converts the analog data into meaningful Parts Per Million (PPM) values for LPG and Smoke, and securely streams the telemetry data over an encrypted TLS connection to a cloud platform for database ingestion and browser-based visualization.
-
+![System Flow](https://raw.githubusercontent.com/HykalZlkifly/Smoke-monitoring-using-EMQX-and-MongoDB-Atlas/main/image.png)
 ---
 
 ## ⚙️ System Architecture & Data Flow
