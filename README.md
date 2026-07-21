@@ -22,4 +22,4 @@ This project focuses on building a real-world IoT telemetry pipeline using an **
 │   └── schema.sql               # Database schemas and structural scripts
 └── README.md                    # Project documentation
 
-![System Flow](path/to/image.png)
+![System Flow](./image.png)
